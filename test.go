@@ -1,7 +1,7 @@
 package logger
 
 func Test() {
-	var _log, _ = Start("test.log", "./", Level.DEBUG)
+	_log, _ := Start("test.log", ".", Level.DEBUG)
 	_log.Rotation(40, 5)
 	_log.Statistics(true)
 
