@@ -378,5 +378,3 @@ func getTime() string {
 	dt := time.Now()
 	return dt.Format(Special)
 }
-
-// https://medium.com/rungo/anatomy-of-methods-in-go-f552aaa8ac4a
