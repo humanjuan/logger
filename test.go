@@ -1,11 +1,7 @@
 package logger
 
-import (
-	Logger "github.com/jpengineer/logger"
-)
-
 func Test() {
-	var _log, _ = Logger.Start("test.log", "./", Logger.Level.DEBUG)
+	var _log, _ = Start("test.log", "./", Logger.Level.DEBUG)
 	_log.Rotation(40, 5)
 	_log.Statistics(true)
 
