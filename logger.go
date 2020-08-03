@@ -42,6 +42,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -302,8 +303,10 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 
 	// F i l e   h e a d e r
 	_, srcFile, _, ok := runtime.Caller(1)
+	_, file := filepath.Split(srcFile)
+
 	if ok {
-		header = "Logger Version: " + __version__ + " SourceFile: " + srcFile + " Hash: " + calculateHash(srcFile)
+		header = "Logger Version: " + __version__ + " SourceFile: " + file + " Hash: " + calculateHash(srcFile)
 	} else {
 		header = "Logger Version: " + __version__
 	}
