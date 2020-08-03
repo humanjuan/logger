@@ -43,7 +43,7 @@ and 4 backup files. To change default rotation you should be considerate the nex
 
 The output format is:
 ```log
-Logger Version: 1.2.A SourceFile: /path/clipboardTest.go Hash: XDNRdfeWUJa4BJ4gaiDWTIQJxxgW1NhxfXaK0qDnKBU=
+Logger Version: 1.2.A SourceFile: main.go Hash: XDNRdfeWUJa4BJ4gaiDWTIQJxxgW1NhxfXaK0qDnKBU=
 Aug 3, 2020 12:41:25.946521 -04 [CRITICAL] This is a Critical message
 Aug 3, 2020 12:41:25.946526 -04 [INFO] This is an Informational message
 Aug 3, 2020 12:41:25.946557 -04 [WARN] This is a Warning message
