@@ -251,8 +251,6 @@ func (_log Log) fileSize() (float64, error) {
 
 func (_log Log) Close() {
 	for len(_log.message) > 0 {
-		// fmt.Println("Wait for the last messages...")
-		// fmt.Println("Queue Len Status:", _log.statistic.statsQueueLen)
 		time.Sleep(1 * time.Second)
 	}
 	if _log.stats {
@@ -330,8 +328,6 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 	}
 
 	// S t a r t
-	// wg.Add(2)
-	// go _log.write(&wg)
 	_log.wg.Add(1)
 	go _log.write()
 
