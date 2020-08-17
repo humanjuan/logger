@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.2.A                                                                                                    //
+//  Version: 1.2.2                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.2.A"
+var __version__ = "1.2.2"
 
 const (
 	ANSIC       = "Mon Jan _2 15:04:05 2006"
