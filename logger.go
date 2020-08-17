@@ -251,9 +251,9 @@ func (_log Log) fileSize() (float64, error) {
 
 func (_log Log) Close() {
 	for len(_log.message) > 0 {
-		fmt.Println("Wait for the last messages...")
-		fmt.Println("Queue Len Status:", _log.statistic.statsQueueLen)
-		time.Sleep(2 * time.Second)
+		// fmt.Println("Wait for the last messages...")
+		// fmt.Println("Queue Len Status:", _log.statistic.statsQueueLen)
+		time.Sleep(1 * time.Second)
 	}
 	if _log.stats {
 		fmt.Println("====== S T A T I S T I C S ======")
