@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.3.0                                                                                                    //
+//  Version: 1.2.2                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,46 +51,27 @@ import (
 	"time"
 )
 
-var __version__ = "1.3.0"
+var __version__ = "1.2.2"
 
-type tsFormat struct {
-	ANSIC			string // "Mon Jan _2 15:04:05 2006"
-	UnixDate		string // "Mon Jan _2 15:04:05 MST 2006"
-	RubyDate		string // "Mon Jan 02 15:04:05 -0700 2006"
-	RFC822			string // "02 Jan 06 15:04 MST"
-	RFC822Z			string // "02 Jan 06 15:04 -0700"
-	RFC850			string // "Monday, 02-Jan-06 15:04:05 MST"
-	RFC1123			string // "Mon, 02 Jan 2006 15:04:05 MST"
-	RFC1123Z		string // "Mon, 02 Jan 2006 15:04:05 -0700"
-	RFC3339			string // "2006-01-02T15:04:05Z07:00"
-	RFC3339Nano		string // "2006-01-02T15:04:05.999999999Z07:00"
-	Kitchen			string // "3:04PM"
-	Special			string // "Jan 2, 2006 15:04:05.000000 MST"
-	Stamp			string // "Jan _2 15:04:05"
-	StampMilli		string // "Jan _2 15:04:05.000"
-	StampMicro		string // "Jan _2 15:04:05.000000"
-	StampNano		string // "Jan _2 15:04:05.000000000"
-
-}
-
-var TS = tsFormat {
-	ANSIC       : "Mon Jan _2 15:04:05 2006",
-	UnixDate    : "Mon Jan _2 15:04:05 MST 2006",
-	RubyDate    : "Mon Jan 02 15:04:05 -0700 2006",
-	RFC822      : "02 Jan 06 15:04 MST",
-	RFC822Z     : "02 Jan 06 15:04 -0700",
-	RFC850      : "Monday, 02-Jan-06 15:04:05 MST",
-	RFC1123     : "Mon, 02 Jan 2006 15:04:05 MST",
-	RFC1123Z    : "Mon, 02 Jan 2006 15:04:05 -0700",
-	RFC3339     : "2006-01-02T15:04:05Z07:00",
-	RFC3339Nano : "2006-01-02T15:04:05.999999999Z07:00",
-	Kitchen     : "3:04PM",
-	Special     : "Jan _2, 2006 15:04:05.000000 MST",
-	Stamp      	: "Jan _2 15:04:05",
-	StampMilli 	: "Jan _2 15:04:05.000",
-	StampMicro 	: "Jan _2 15:04:05.000000",
-	StampNano  	: "Jan _2 15:04:05.000000000",
-}
+const (
+	ANSIC       = "Mon Jan _2 15:04:05 2006"
+	UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
+	RubyDate    = "Mon Jan 02 15:04:05 -0700 2006"
+	RFC822      = "02 Jan 06 15:04 MST"
+	RFC822Z     = "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
+	RFC850      = "Monday, 02-Jan-06 15:04:05 MST"
+	RFC1123     = "Mon, 02 Jan 2006 15:04:05 MST"
+	RFC1123Z    = "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
+	RFC3339     = "2006-01-02T15:04:05Z07:00"
+	RFC3339Nano = "2006-01-02T15:04:05.999999999Z07:00"
+	Kitchen     = "3:04PM"
+	Special     = "Jan 2, 2006 15:04:05.000000 MST"
+	// Handy time stamps.
+	Stamp      = "Jan _2 15:04:05"
+	StampMilli = "Jan _2 15:04:05.000"
+	StampMicro = "Jan _2 15:04:05.000000"
+	StampNano  = "Jan _2 15:04:05.000000000"
+)
 
 type getLevel struct {
 	DEBUG    string
@@ -121,8 +102,6 @@ type Log struct {
 	wg                sync.WaitGroup
 	mtx               sync.Mutex
 }
-
-var _timestampFormat = TS.Special
 
 // F o r   S t a t i s t i c s
 type statistics struct {
@@ -287,11 +266,6 @@ func (_log Log) Close() {
 	_log.file.Close()
 }
 
-func (_log Log) TimestampFormat(format string) {
-	_timestampFormat = format
-
-}
-
 ///////////////////////////////////////
 //  P U B L I C   F U N C T I O N S  //
 ///////////////////////////////////////
@@ -401,5 +375,5 @@ func setFormat(msg string, lvl string) string {
 
 func getTime() string {
 	dt := time.Now()
-	return dt.Format(_timestampFormat)
+	return dt.Format(Special)
 }
