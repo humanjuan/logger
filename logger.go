@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.3.0-beta                                                                                                    //
+//  Version: 1.3.0                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.3.0-beta"
+var __version__ = "1.3.0"
 
 type tsFormat struct {
 	ANSIC			string // "Mon Jan _2 15:04:05 2006"
