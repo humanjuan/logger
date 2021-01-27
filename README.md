@@ -1,4 +1,4 @@
-# logger
+# logger v1.3.0
 **Go Logger module**
 
 This logger is a simple module to write a log file, and it allows multiple instances, 
@@ -22,6 +22,7 @@ func main() {
     var level = logger.Level.DEBUG
 
     _log, _ := logger.Start(logName, path, level)
+    _log.TimestampFormat(logger.TS.Special)
     
     _log.Critical("This is a Critical message")
     _log.Info("This is a Informational message")
