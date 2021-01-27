@@ -22,7 +22,7 @@ func main() {
     var level = logger.Level.DEBUG
 
     _log, _ := logger.Start(logName, path, level)
-    _log.TimestampFormat(_logger.TS.Special)
+    _log.TimestampFormat(logger.TS.Special)
     
     _log.Critical("This is a Critical message")
     _log.Info("This is a Informational message")
