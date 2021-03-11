@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.3.0-beta                                                                                                    //
+//  Version: 1.3.0                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
