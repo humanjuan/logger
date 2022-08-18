@@ -29,7 +29,6 @@ func main() {
     _log.Warn("This is a Warning message")
     _log.Error("This is a Error message")
     _log.Debug("This is a Debug message")
-    _log.Close()
 }
 ```
 
