@@ -1,34 +1,40 @@
-# logger v1.3.0
+# logger v1.3.1
+
 **Go Logger module**
 
-This logger is a simple module to write a log file, and it allows multiple instances, 
-concurrency write, rotation by file size (MB), backup files and log level (debug, informative, warning, error and critical)
+This logger is a simple module to write a log file, and it allows multiple instances,
+concurrency write, rotation by file size (MB), backup files and log level (debug, informative, warning, error and
+critical)
 
 You can load module with:
+
 ```go
 go get "github.com/jpengineer/logger"
 ```
 
-The default implementation way is: 
+The default implementation way is:
 
 ```go
 package main
 
-import ("github.com/jpengineer/logger")
- 
-func main() {
-    var logName = "MyLogName.log"
-    var path = "/my/log/path"
-    var level = logger.Level.DEBUG
+import (
+	"github.com/jpengineer/logger"
+)
 
-    _log, _ := logger.Start(logName, path, level)
-    _log.TimestampFormat(_logger.TS.Special)
-    
-    _log.Critical("This is a Critical message")
-    _log.Info("This is a Informational message")
-    _log.Warn("This is a Warning message")
-    _log.Error("This is a Error message")
-    _log.Debug("This is a Debug message")
+func main() {
+	var logName = "MyLogName.log"
+	var path = "/my/log/path"
+	var level = logger.Level.DEBUG
+
+	_log, _ := logger.Start(logName, path, level)
+	_log.TimestampFormat(_logger.TS.Special)
+
+	_log.Critical("This is a Critical message")
+	_log.Info("This is a Informational message")
+	_log.Warn("This is a Warning message")
+	_log.Error("This is a Error message")
+	_log.Debug("This is a Debug message")
+	_log.Close()
 }
 ```
 
@@ -38,11 +44,12 @@ and 4 backup files. To change default rotation you should be considerate the nex
 ```go
     var maxSizeMB = 80
     var maxBackup = 5
-    
+
     _log.Rotation(maxSizeMB, maxBackup)
 ```
 
 The output format is:
+
 ```log
 Logger Version: 1.2.A SourceFile: main.go Hash: XDNRdfeWUJa4BJ4gaiDWTIQJxxgW1NhxfXaK0qDnKBU=
 Aug 3, 2020 12:41:25.946521 -04 [CRITICAL] This is a Critical message
