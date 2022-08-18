@@ -1,4 +1,4 @@
-# logger v1.3.0
+# logger v1.3.1
 **Go Logger module**
 
 This logger is a simple module to write a log file, and it allows multiple instances, 
@@ -14,21 +14,24 @@ The default implementation way is:
 ```go
 package main
 
-import ("github.com/jpengineer/logger")
- 
-func main() {
-    var logName = "MyLogName.log"
-    var path = "/my/log/path"
-    var level = logger.Level.DEBUG
+import (
+	"github.com/jpengineer/logger"
+)
 
-    _log, _ := logger.Start(logName, path, level)
-    _log.TimestampFormat(_logger.TS.Special)
-    
-    _log.Critical("This is a Critical message")
-    _log.Info("This is a Informational message")
-    _log.Warn("This is a Warning message")
-    _log.Error("This is a Error message")
-    _log.Debug("This is a Debug message")
+func main() {
+	var logName = "MyLogName.log"
+	var path = "/my/log/path"
+	var level = logger.Level.DEBUG
+
+	_log, _ := logger.Start(logName, path, level)
+	_log.TimestampFormat(_logger.TS.Special)
+
+	_log.Critical("This is a Critical message")
+	_log.Info("This is a Informational message")
+	_log.Warn("This is a Warning message")
+	_log.Error("This is a Error message")
+	_log.Debug("This is a Debug message")
+	_log.Close()
 }
 ```
 
