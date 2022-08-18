@@ -271,19 +271,22 @@ func (_log Log) fileSize() (float64, error) {
 }
 
 func (_log Log) Close() {
-	for len(_log.message) > 0 {
-		time.Sleep(1 * time.Second)
+	for {
+		if len(_log.message) < 1 {
+			close(_log.message)
+			_log.wg.Done()
+			break
+		}
 	}
 	if _log.stats {
 		fmt.Println("====== S T A T I S T I C S ======")
 		fmt.Println("File  Name:", _log.name)
-		fmt.Println("Dequeue:", _log.statistic.statsDequeue+1)
+		fmt.Println("Dequeue:", _log.statistic.statsDequeue)
 		fmt.Println("Queue Length into Logger (func Close):", _log.statistic.statsQueueLen)
 		fmt.Println("Total Call to Write:", _log.statistic.statsCallWrite)
 	}
 
-	close(_log.message)
-	_log.wg.Done()
+	time.Sleep(1 * time.Second)
 	_log.file.Close()
 }
 
