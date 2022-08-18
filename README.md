@@ -1,4 +1,4 @@
-# logger v1.3.0
+# logger v1.3.1
 **Go Logger module**
 
 This logger is a simple module to write a log file, and it allows multiple instances, 
