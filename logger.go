@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.3.0"
+var __version__ = "1.3.1"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
