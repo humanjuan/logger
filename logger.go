@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.3.1                                                                                                    //
+//  Version: 1.4.0                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.3.1"
+var __version__ = "1.4.0"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
@@ -149,43 +149,48 @@ func (_log Log) Status() bool {
 	return _log.status
 }
 
-func (_log Log) Info(data string) {
+func (_log Log) Info(data interface{}) {
+	sdata := fmt.Sprint(data)
 	if _log.level == "DEBUG" || _log.level == "INFO" {
-		raw := setFormat(data, "INFO")
+		raw := setFormat(sdata, "INFO")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Warn(data string) {
+func (_log Log) Warn(data interface{}) {
+	sdata := fmt.Sprint(data)
 	if _log.level == "DEBUG" || _log.level == "INFO" || _log.level == "WARN" {
-		raw := setFormat(data, "WARN")
+		raw := setFormat(sdata, "WARN")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Error(data string) {
+func (_log Log) Error(data interface{}) {
+	sdata := fmt.Sprint(data)
 	if _log.level != "CRITICAL" {
-		raw := setFormat(data, "ERROR")
+		raw := setFormat(sdata, "ERROR")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Critical(data string) {
-	raw := setFormat(data, "CRITICAL")
+func (_log Log) Critical(data interface{}) {
+	sdata := fmt.Sprint(data)
+	raw := setFormat(sdata, "CRITICAL")
 	_log.message <- raw
 	// S t a t i s t i c s
 	_log.statistic.statsCallWrite++
 }
 
-func (_log Log) Debug(data string) {
+func (_log Log) Debug(data interface{}) {
+	sdata := fmt.Sprint(data)
 	if _log.level == "DEBUG" {
-		raw := setFormat(data, "DEBUG")
+		raw := setFormat(sdata, "DEBUG")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
