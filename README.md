@@ -1,3 +1,5 @@
+[![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/jpengineer/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
+
 # logger v1.4.0
 **Go Logger module**
 
