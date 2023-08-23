@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.4.0"
+var __version__ = "1.5.0"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
@@ -112,7 +112,7 @@ var Level = getLevel{
 type Log struct {
 	name, path, level string
 	status            bool
-	maxSize           float64
+	maxSize           int
 	maxRotation       int
 	file              *os.File
 	stats             bool
@@ -140,84 +140,86 @@ func (_log *Log) Statistics(state bool) {
 	_log.stats = state
 }
 
-func (_log *Log) Rotation(SizeMB float64, Backup int) {
+func (_log *Log) Rotation(SizeMB int, Backup int) {
 	_log.maxSize = SizeMB
 	_log.maxRotation = Backup
 }
 
-func (_log Log) Status() bool {
+func (_log *Log) Status() bool {
 	return _log.status
 }
 
-func (_log Log) Info(data interface{}) {
-	sdata := fmt.Sprint(data)
+func (_log *Log) Info(data ...interface{}) {
 	if _log.level == "DEBUG" || _log.level == "INFO" {
-		raw := setFormat(sdata, "INFO")
+		raw := setFormat(fmt.Sprint(data...), "INFO")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Warn(data interface{}) {
-	sdata := fmt.Sprint(data)
+func (_log *Log) Warn(data ...interface{}) {
 	if _log.level == "DEBUG" || _log.level == "INFO" || _log.level == "WARN" {
-		raw := setFormat(sdata, "WARN")
+		raw := setFormat(fmt.Sprint(data...), "WARN")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Error(data interface{}) {
-	sdata := fmt.Sprint(data)
+func (_log *Log) Error(data ...interface{}) {
 	if _log.level != "CRITICAL" {
-		raw := setFormat(sdata, "ERROR")
+		raw := setFormat(fmt.Sprint(data...), "ERROR")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) Critical(data interface{}) {
-	sdata := fmt.Sprint(data)
-	raw := setFormat(sdata, "CRITICAL")
+func (_log *Log) Critical(data ...interface{}) {
+	raw := setFormat(fmt.Sprint(data...), "CRITICAL")
 	_log.message <- raw
 	// S t a t i s t i c s
 	_log.statistic.statsCallWrite++
 }
 
-func (_log Log) Debug(data interface{}) {
-	sdata := fmt.Sprint(data)
+func (_log *Log) Debug(data ...interface{}) {
 	if _log.level == "DEBUG" {
-		raw := setFormat(sdata, "DEBUG")
+		raw := setFormat(fmt.Sprint(data...), "DEBUG")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log Log) write() {
-	msg, ok := <-_log.message
-	var err error
-	for ok {
+func (_log *Log) write() {
+	for msg := range _log.message {
 		_log.mtx.Lock()
-		_log.sizeCheck()
-		_, err = _log.file.WriteString(msg)
 
+		// Check log file size
+		err := _log.sizeCheck()
 		if err != nil {
-			fmt.Println("error: write()\n", err)
+			fmt.Println("error: sizeCheck()\n", err)
+		} else {
+			_, err = _log.file.WriteString(msg)
+			if err != nil {
+				fmt.Println("error: write()\n", err)
+			}
 		}
+
 		_log.mtx.Unlock()
-		msg, ok = <-_log.message
+
 		// S t a t i s t i c s
 		_log.statistic.statsQueueLen = len(_log.message)
 		_log.statistic.statsDequeue++
-
+	}
+	err := _log.file.Close()
+	if err != nil {
+		return
 	}
 }
 
-func (_log Log) logRotate() {
+func (_log *Log) logRotate() {
 	// If exist file .0 then rename it
 	tmpFile := _log.file.Name() + ".0"
 	_, err := os.Stat(tmpFile)
@@ -233,26 +235,41 @@ func (_log Log) logRotate() {
 
 			// R o t a t i o n   l i m i t
 			if err == nil && i == _log.maxRotation {
-				os.Remove(_log.file.Name() + "." + strconv.Itoa(i))
-				os.Rename(_log.file.Name()+"."+strconv.Itoa(i-1), _log.file.Name()+"."+strconv.Itoa(i))
+				err := os.Remove(_log.file.Name() + "." + strconv.Itoa(i))
+				if err != nil {
+					return
+				}
+				err = os.Rename(_log.file.Name()+"."+strconv.Itoa(i-1), _log.file.Name()+"."+strconv.Itoa(i))
+				if err != nil {
+					return
+				}
 			} else if err == nil {
-				os.Rename(_log.file.Name()+"."+strconv.Itoa(i), _log.file.Name()+"."+strconv.Itoa(i+1))
+				err = os.Rename(_log.file.Name()+"."+strconv.Itoa(i), _log.file.Name()+"."+strconv.Itoa(i+1))
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
 }
 
-func (_log Log) sizeCheck() error {
+func (_log *Log) sizeCheck() error {
 	currentSize, _ := _log.fileSize()
 	var err error
 
-	if currentSize >= _log.maxSize {
-		_log.file.Close()
-		new := _log.file.Name() + ".0"
-		old := _log.file.Name()
+	if currentSize >= float64(_log.maxSize) {
+		err := _log.file.Close()
+		if err != nil {
+			return err
+		}
+		newName := _log.file.Name() + ".0"
+		oldName := _log.file.Name()
 
-		os.Rename(old, new)
-		file, err := os.OpenFile(old, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		err = os.Rename(oldName, newName)
+		if err != nil {
+			return err
+		}
+		file, err := os.OpenFile(oldName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			return err
 		}
@@ -263,7 +280,7 @@ func (_log Log) sizeCheck() error {
 	return err
 }
 
-func (_log Log) fileSize() (float64, error) {
+func (_log *Log) fileSize() (float64, error) {
 	info, err := _log.file.Stat()
 	if err != nil {
 		return float64(0), err
@@ -275,14 +292,10 @@ func (_log Log) fileSize() (float64, error) {
 	return megabytes, err
 }
 
-func (_log Log) Close() {
-	for {
-		if len(_log.message) < 1 {
-			close(_log.message)
-			_log.wg.Done()
-			break
-		}
-	}
+func (_log *Log) Close() {
+	_log.wg.Wait() // Wait for all writing goroutines to finish
+	close(_log.message)
+
 	if _log.stats {
 		fmt.Println("====== S T A T I S T I C S ======")
 		fmt.Println("File  Name:", _log.name)
@@ -292,10 +305,13 @@ func (_log Log) Close() {
 	}
 
 	time.Sleep(1 * time.Second)
-	_log.file.Close()
+	err := _log.file.Close()
+	if err != nil {
+		return
+	}
 }
 
-func (_log Log) TimestampFormat(format string) {
+func (_log *Log) TimestampFormat(format string) {
 	_timestampFormat = format
 
 }
@@ -304,7 +320,7 @@ func (_log Log) TimestampFormat(format string) {
 //  P U B L I C   F U N C T I O N S  //
 ///////////////////////////////////////
 
-func Start(logName string, logPath string, logLevel string) (Log, error) {
+func Start(logName string, logPath string, logLevel string) (*Log, error) {
 	var _log Log
 	var header string
 
@@ -317,7 +333,7 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 	stat, err := os.Stat(logPath)
 	if err != nil || !stat.IsDir() {
 		err := fmt.Errorf("error: The path %s does not exist", logPath)
-		return _log, err
+		return nil, err
 	}
 
 	// V e r i f y   l o g   l e v e l
@@ -330,7 +346,7 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 	tmpFile, err := os.OpenFile(logPath+logName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 
 	if err != nil {
-		return _log, err
+		return nil, err
 	}
 
 	// F i l e   h e a d e r
@@ -345,7 +361,7 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 
 	_, err = tmpFile.WriteString(header + "\n")
 	if err != nil {
-		return _log, err
+		return nil, err
 	}
 	// C r e a t e   b a s i c   l o g g e r
 	_log = Log{
@@ -365,7 +381,7 @@ func Start(logName string, logPath string, logLevel string) (Log, error) {
 	_log.wg.Add(1)
 	go _log.write()
 
-	return _log, nil
+	return &_log, nil
 }
 
 ///////////////////////////////////////
@@ -392,7 +408,13 @@ func calculateHash(file string) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			fmt.Println("Error on calculateHash() when Close()")
+			fmt.Println(err)
+		}
+	}(f)
 
 	_hash_ := sha256.New()
 	_, err = io.Copy(_hash_, f)
