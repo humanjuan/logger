@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.4.0                                                                                                    //
+//  Version: 1.6.0                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.5.0"
+var __version__ = "1.6.0"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
@@ -192,31 +192,26 @@ func (_log *Log) Debug(data ...interface{}) {
 	}
 }
 
-func (_log *Log) write() {
-	for msg := range _log.message {
-		_log.mtx.Lock()
+func (_log *Log) Write(p []byte) (n int, err error) {
+	_log.mtx.Lock()
+	defer _log.mtx.Unlock()
 
-		// Check log file size
-		err := _log.sizeCheck()
-		if err != nil {
-			fmt.Println("error: sizeCheck()\n", err)
-		} else {
-			_, err = _log.file.WriteString(msg)
-			if err != nil {
-				fmt.Println("error: write()\n", err)
-			}
-		}
-
-		_log.mtx.Unlock()
-
-		// S t a t i s t i c s
-		_log.statistic.statsQueueLen = len(_log.message)
-		_log.statistic.statsDequeue++
-	}
-	err := _log.file.Close()
+	err = _log.sizeCheck()
 	if err != nil {
-		return
+		return 0, err
 	}
+
+	n, err = _log.file.Write(p)
+	if err != nil {
+		fmt.Println("error: Write()\n", err)
+		return n, err
+	}
+
+	// S t a t i s t i c s
+	_log.statistic.statsQueueLen = len(_log.message)
+	_log.statistic.statsDequeue++
+
+	return n, nil
 }
 
 func (_log *Log) logRotate() {
@@ -293,7 +288,7 @@ func (_log *Log) fileSize() (float64, error) {
 }
 
 func (_log *Log) Close() {
-	_log.wg.Wait() // Wait for all writing goroutines to finish
+	_log.wg.Wait()
 	close(_log.message)
 
 	if _log.stats {
@@ -379,7 +374,7 @@ func Start(logName string, logPath string, logLevel string) (*Log, error) {
 
 	// S t a r t
 	_log.wg.Add(1)
-	go _log.write()
+	go _log.startWriting()
 
 	return &_log, nil
 }
@@ -387,6 +382,17 @@ func Start(logName string, logPath string, logLevel string) (*Log, error) {
 ///////////////////////////////////////
 // P R I V A T E   F U N C T I O N S //
 ///////////////////////////////////////
+
+func (_log *Log) startWriting() {
+	defer _log.wg.Done()
+
+	for msg := range _log.message {
+		_, err := _log.file.Write([]byte(msg))
+		if err != nil {
+			fmt.Println("error: Write()\n", err)
+		}
+	}
+}
 
 func verifyLevel(lvl string) bool {
 	var fields = reflect.TypeOf(Level)
