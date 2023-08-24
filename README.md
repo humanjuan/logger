@@ -1,6 +1,6 @@
 [![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/jpengineer/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
 
-# logger v1.5.0
+# logger v1.6.0
 **Go Logger module**
 
 This logger is a simple module to write a log file, and it allows multiple instances, 
@@ -49,7 +49,7 @@ and 4 backup files. To change default rotation you should be considerate the nex
 
 The output format is:
 ```log
-Logger Version: 1.5.0 SourceFile: main.go Hash: XDNRdfeWUJa4BJ4gaiDWTIQJxxgW1NhxfXaK0qDnKBU=
+Logger Version: 1.6.0 SourceFile: main.go Hash: XDNRdfeWUJa4BJ4gaiDWTIQJxxgW1NhxfXaK0qDnKBU=
 Aug 3, 2020 12:41:25.946521 -04 [CRITICAL] This is a Critical message
 Aug 3, 2020 12:41:25.946526 -04 [INFO] This is an Informational message 12345
 Aug 3, 2020 12:41:25.946557 -04 [WARN] This is a Warning message
