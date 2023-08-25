@@ -1,6 +1,6 @@
 [![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/jpengineer/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
 
-# logger v1.6.0
+# logger v1.6.1
 **Go Logger module**
 
 This logger is a simple module to write a log file, and it allows multiple instances, 

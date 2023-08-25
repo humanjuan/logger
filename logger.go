@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.6.0                                                                                                    //
+//  Version: 1.6.1                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.6.0"
+var __version__ = "1.6.1"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
@@ -149,43 +149,74 @@ func (_log *Log) Status() bool {
 	return _log.status
 }
 
-func (_log *Log) Info(data ...interface{}) {
+func (_log *Log) Info(data interface{}, args ...interface{}) {
 	if _log.level == "DEBUG" || _log.level == "INFO" {
-		raw := setFormat(fmt.Sprint(data...), "INFO")
+		var message string
+		if len(args) > 0 {
+			message = fmt.Sprintf(data.(string), args...)
+		} else {
+			message = fmt.Sprintf("%v", data)
+		}
+		raw := setFormat(message, "INFO")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log *Log) Warn(data ...interface{}) {
+func (_log *Log) Warn(data interface{}, args ...interface{}) {
 	if _log.level == "DEBUG" || _log.level == "INFO" || _log.level == "WARN" {
-		raw := setFormat(fmt.Sprint(data...), "WARN")
+		var message string
+		if len(args) > 0 {
+			message = fmt.Sprintf(data.(string), args...)
+		} else {
+			message = fmt.Sprintf("%v", data)
+		}
+		raw := setFormat(message, "WARN")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log *Log) Error(data ...interface{}) {
+func (_log *Log) Error(data interface{}, args ...interface{}) {
 	if _log.level != "CRITICAL" {
-		raw := setFormat(fmt.Sprint(data...), "ERROR")
+		var message string
+		if len(args) > 0 {
+			message = fmt.Sprintf(data.(string), args...)
+		} else {
+			message = fmt.Sprintf("%v", data)
+		}
+		raw := setFormat(message, "ERROR")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
 	}
 }
 
-func (_log *Log) Critical(data ...interface{}) {
-	raw := setFormat(fmt.Sprint(data...), "CRITICAL")
+func (_log *Log) Critical(data interface{}, args ...interface{}) {
+	var message string
+	if len(args) > 0 {
+		message = fmt.Sprintf(data.(string), args...)
+	} else {
+		message = fmt.Sprintf("%v", data)
+	}
+
+	raw := setFormat(message, "CRITICAL")
 	_log.message <- raw
 	// S t a t i s t i c s
 	_log.statistic.statsCallWrite++
 }
 
-func (_log *Log) Debug(data ...interface{}) {
+func (_log *Log) Debug(data interface{}, args ...interface{}) {
 	if _log.level == "DEBUG" {
-		raw := setFormat(fmt.Sprint(data...), "DEBUG")
+		var message string
+		if len(args) > 0 {
+			message = fmt.Sprintf(data.(string), args...)
+		} else {
+			message = fmt.Sprintf("%v", data)
+		}
+		raw := setFormat(message, "DEBUG")
 		_log.message <- raw
 		// S t a t i s t i c s
 		_log.statistic.statsCallWrite++
@@ -288,8 +319,8 @@ func (_log *Log) fileSize() (float64, error) {
 }
 
 func (_log *Log) Close() {
-	_log.wg.Wait()
 	close(_log.message)
+	_log.wg.Wait()
 
 	if _log.stats {
 		fmt.Println("====== S T A T I S T I C S ======")
