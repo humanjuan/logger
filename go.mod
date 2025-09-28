@@ -1,3 +1,3 @@
-module github.com/jpengineer/logger
+module github.com/humanjuan/logger
 
-go 1.14
+go 1.16

@@ -1,14 +1,23 @@
-[![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/jpengineer/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
+[![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/humanjuan/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
 
-# logger v1.6.1
+# logger v1.6.2
 **Go Logger module**
 
-This logger is a simple module to write a log file, and it allows multiple instances, 
+This logger is a simple module to write a log file, and it allows multiple instances,
 concurrency write, rotation by file size (MB), backup files and log level (debug, informative, warning, error and critical)
+
+Supported Go versions: 1.16 – 1.25.0
+This module compiles and passes tests in that range. If you use Go 1.16, ensure modules are enabled when working outside GOPATH (e.g., export GO111MODULE=on for very old setups).
+
+Examples live under examples/basic. You can run the demo with:
+
+```
+cd examples/basic && go run .
+```
 
 You can load module with:
 ```go
-go get "github.com/jpengineer/logger"
+go get "github.com/humanjuan/logger"
 ```
 
 The default implementation way is: 
@@ -17,7 +26,7 @@ The default implementation way is:
 package main
 
 import (
-	"github.com/jpengineer/logger"
+	"github.com/humanjuan/logger"
 )
 
 func main() {
