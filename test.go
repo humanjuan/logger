@@ -1,3 +1,7 @@
+//go:build ignore
+// +build ignore
+
+// This file is an old demo kept for reference. It is excluded from builds and tests.
 package logger
 
 func Test() {

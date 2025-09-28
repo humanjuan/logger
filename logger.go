@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                                                                                                    //
 //  Author: Juan Alejandro Perez Chandia                                                                              //
-//  Contact: jalejandro.ingeniero@gmail.com                                                                           //
-//  Website: https://www.jpengineer.cl/                                                                               //
+//  Contact: juan.alejandro@humanjuan.com                                                                           //
+//  Website: https://humanjuan.com/                                                                               //
 //                                                                                                                    //
 //  This module create and write the log files                                                                        //
 //                                                                                                                    //
-//  Version: 1.6.1                                                                                                    //
+//  Version: 1.6.2                                                                                                    //
 //                                                                                                                    //
 //                   Include methods that resolve the multiples instances of the logger.                              //
 //                                                                                                                    //
@@ -51,7 +51,7 @@ import (
 	"time"
 )
 
-var __version__ = "1.6.1"
+var __version__ = "1.6.2"
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
