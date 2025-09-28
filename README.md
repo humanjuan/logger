@@ -1,4 +1,4 @@
-[![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/humanjuan/logger)](https://pkg.go.dev/github.com/jpengineer/logger)
+[![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/humanjuan/logger)](https://pkg.go.dev/github.com/humanjuan/logger)
 
 # logger v1.6.2
 **Go Logger module**
