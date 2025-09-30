@@ -1,4 +1,6 @@
 [![Go Package](https://img.shields.io/badge/Go%20Package-Reference-green?style=flat&logo=Go&link=https://pkg.go.dev/github.com/humanjuan/logger)](https://pkg.go.dev/github.com/humanjuan/logger)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-Support-orange?logo=buy-me-a-coffee&style=flat-square)](https://www.buymeacoffee.com/humanjuan)
+
 
 # logger v1.6.2
 **Go Logger module**
