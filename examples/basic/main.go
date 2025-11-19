@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/humanjuan/logger"
+	"github.com/humanjuan/acacia"
 )
 
 func main() {
 	logName := "MyLogName.log"
 	path := "." // write in current directory for the demo
-	level := logger.Level.DEBUG
+	level := acacia.Level.DEBUG
 
-	lg, err := logger.Start(logName, path, level)
+	lg, err := acacia.Start(logName, path, level)
 	if err != nil {
 		panic(err)
 	}
 	// Optional: choose your preferred timestamp format
-	lg.TimestampFormat(logger.TS.Special)
+	lg.TimestampFormat(acacia.TS.Special)
 
 	lg.Critical("This is a Critical message")
 	lg.Info("This is an Informational message %d", 12345)

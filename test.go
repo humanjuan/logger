@@ -2,11 +2,12 @@
 // +build ignore
 
 // This file is an old demo kept for reference. It is excluded from builds and tests.
-package logger
+package acacia
 
 func Test() {
 	_log, _ := Start("test.log", ".", Level.DEBUG)
 	_log.Rotation(40, 5)
+	_log.DailyRotation(true)
 	_log.TimestampFormat(TS.Special)
 
 	data1 := 2022
