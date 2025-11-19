@@ -28,6 +28,7 @@ A single-developer, zero-dependency, production-grade logger for Go. Designed fo
 | **Zero external dependencies**               | Yes                      | Yes           | Yes           | Yes           | Yes          |
 | **100% race-free** (`go test -race`)         | Yes                      | Yes           | Yes           | Yes           | No           |
 | **Active maintenance**                       | Yes                      | Yes           | Yes           | Yes           | No           |
+
 Sources: Sequential data from BetterStack article (tested on local machine). Parallel/1KB data from Acacia's BetterStack-compatible 
 suite (your Intel i7-8750H, 2025). Zerolog parallel estimates from their README/community tests (~380 ns). Acacia beats Zerolog by +39% in parallel 
 and +94% in parallel 1KB, even on older hardware. On M2/M3, Acacia would likely match the top sequential (~100–200 ns/op).
