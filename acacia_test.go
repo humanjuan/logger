@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -150,11 +149,7 @@ func TestConcurrentWrites(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < msgs; i++ {
-				select {
-				case lg.message <- "test":
-				default:
-					atomic.AddUint64(&lg.dropped, 1)
-				}
+				lg.Info("test")
 			}
 		}()
 	}
@@ -162,8 +157,9 @@ func TestConcurrentWrites(t *testing.T) {
 	lg.Close()
 
 	count := strings.Count(readLog(t, filepath.Join(tmp, "conc.log")), "[INFO]")
-	if count < 10000 { // aceptamos hasta ~20% drop en test extremo
-		t.Logf("Aceptable bajo carga extrema. Logs: %d, Dropped: %d", count, lg.Dropped())
+	expected := goroutines * msgs
+	if count != expected {
+		t.Fatalf("Se esperaban %d logs sin pérdida, se contaron %d", expected, count)
 	}
 }
 

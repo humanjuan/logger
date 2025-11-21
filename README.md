@@ -126,13 +126,20 @@ require github.com/humanjuan/acacia latest
 ```go
 package main
 
-import "github.com/humanjuan/acacia"
+import (
+	"errors"
+
+	"github.com/humanjuan/acacia"
+)
 
 func main() {
 	// Start logger
 	log, _ := acacia.Start("app.log", "./logs", acacia.Level.INFO)
 	log.DailyRotation(true)
-	defer log.Sync() // Flush logs on exit, never lose a log even on panic or crash
+	defer log.Close()
+	// defer log.Sync()
+
+	err := errors.New("this is an error message")
 
 	// Optional: choose your favorite timestamp format
 	log.TimestampFormat(acacia.TS.RFC3339Nano)
@@ -142,8 +149,6 @@ func main() {
 	log.Warn("High memory usage: %.2f GB", 7.8)
 	log.Info("User %s logged in from %s", "juan", "192.168.1.100")
 	log.Debug("Debugging session ID: %d", 12345)
-
-	// log.Close() is no longer needed. Sync() does everything safely
 }
 ```
 
@@ -201,7 +206,7 @@ Acacia is built from the ground up for maximum throughput, zero log loss, and bu
 - **100 % pure stdlib**: no cgo, no unsafe, no third-party code, perfect for air-gapped and high-security environments.
 
 
-## ❤️ Support the Project
+## Support the Project
 
 If this logger has been useful to you, consider supporting the project:
 
@@ -210,7 +215,7 @@ If this logger has been useful to you, consider supporting the project:
 Every contribution helps keep open-source tools like this active and evolving.
 
 
-## 📄 License
+## License
 
 This project is released under the **MIT License**.  
 You are free to use it in both personal and commercial projects.

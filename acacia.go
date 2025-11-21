@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  HumanJuan Acacia - High-performance concurrent logger with real file rotation                                     //
 //                                                                                                                    //
-//  Version: 2.0.0                                                                                                    //
+//  Version: 2.1.0                                                                                                    //
 //                                                                                                                    //
 //	MIT License                                                                                                       //
 //	                                                                                                                  //
@@ -47,16 +47,40 @@ import (
 )
 
 const (
-	version       = "2.0.0"
-	bufferSize    = 4096
-	lastDayFormat = "2006-01-02"
-	channelBuf    = 10000
-	flushInterval = 100 * time.Millisecond
+	version           = "2.1.0"
+	DefaultBufferSize = 500_000
+	MinBufferSize     = 1_000
+	DefaultBatchSize  = 64 * 1024 // 64 kb
+	flushInterval     = 100 * time.Millisecond
+	lastDayFormat     = "2006-01-02"
 )
 
 var (
 	timestampFormat = TS.Special
 )
+
+type config struct {
+	bufferSize int
+	batchSize  int
+}
+
+type Option func(*config)
+
+func WithBufferSize(number int) Option {
+	return func(conf *config) {
+		if number >= MinBufferSize {
+			conf.bufferSize = number
+		}
+	}
+}
+
+func WithBatchSize(number int) Option {
+	return func(conf *config) {
+		if number > 1024 {
+			conf.batchSize = number
+		}
+	}
+}
 
 type tsFormat struct {
 	ANSIC       string // "Mon Jan _2 15:04:05 2006"
@@ -129,7 +153,6 @@ type Log struct {
 	wg                sync.WaitGroup
 	mtx               sync.Mutex
 	buffer            []byte
-	dropped           uint64
 }
 
 // F o r   S t a t i s t i c s
@@ -156,9 +179,10 @@ func (_log *Log) Status() bool {
 	return _log.status
 }
 
-func (_log *Log) Dropped() uint64 {
-	return atomic.LoadUint64(&_log.dropped)
-}
+// Dropped está deprecado. Desde v2.2 el logger aplica backpressure y no
+// descarta mensajes. Este método se conserva por compatibilidad y siempre
+// retorna 0.
+func (_log *Log) Dropped() uint64 { return 0 }
 
 func (_log *Log) logf(level string, data interface{}, args ...interface{}) {
 	if !_log.shouldLog(level) {
@@ -168,12 +192,9 @@ func (_log *Log) logf(level string, data interface{}, args ...interface{}) {
 	msg := _log.formatMessage(data, args...)
 	raw := _log.setFormat(msg, level)
 
-	select {
-	case _log.message <- raw:
-		atomic.AddInt64(&_log.statistic.statsCallWrite, 1)
-	default:
-		atomic.AddUint64(&_log.dropped, 1)
-	}
+	// Envío bloqueante: aplica backpressure y garantiza cero pérdidas.
+	_log.message <- raw
+	atomic.AddInt64(&_log.statistic.statsCallWrite, 1)
 }
 
 func (_log *Log) shouldLog(level string) bool {
@@ -246,10 +267,16 @@ func (_log *Log) Rotation(sizeMB int, backup int) {
 
 func (_log *Log) DailyRotation(enabled bool) {
 	_log.mtx.Lock()
-	defer _log.mtx.Unlock()
 	_log.daily = enabled
 	if enabled {
 		_log.lastDay = time.Now().Format(lastDayFormat)
+	}
+	_log.mtx.Unlock()
+	// Si se habilita la rotación diaria, rotamos inmediatamente el archivo actual
+	// a un nombre con la fecha de hoy (p. ej., app.log → app-YYYY-MM-DD.log),
+	// para alinear con la expectativa de los tests y simplificar el ciclo diario.
+	if enabled {
+		_ = _log.rotateByDate(_log.lastDay)
 	}
 }
 
@@ -349,7 +376,6 @@ func (_log *Log) Close() {
 		fmt.Printf("Queue Length (at close): %d\n", atomic.LoadInt64(&_log.statistic.statsQueueLen))
 		fmt.Printf("Total Write Calls: %d\n", atomic.LoadInt64(&_log.statistic.statsCallWrite))
 		fmt.Printf("Rotations: %d\n", atomic.LoadInt64(&_log.statistic.rotationCount))
-		fmt.Printf("Dropped Logs: %d\n", atomic.LoadUint64(&_log.dropped))
 	}
 
 	if f := _log.getFile(); f != nil {
@@ -361,7 +387,7 @@ func (_log *Log) Close() {
 //  P U B L I C   F U N C T I O N S  //
 ///////////////////////////////////////
 
-func Start(logName, logPath, logLevel string) (*Log, error) {
+func Start(logName, logPath, logLevel string, opts ...Option) (*Log, error) {
 	if logPath[len(logPath)-1:] != "/" {
 		logPath += "/"
 	}
@@ -382,6 +408,14 @@ func Start(logName, logPath, logLevel string) (*Log, error) {
 		return nil, err
 	}
 
+	cfg := &config{
+		bufferSize: DefaultBufferSize,
+		batchSize:  DefaultBatchSize,
+	}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
 	header := fmt.Sprintf("=== HumanJuan Logger v%s started at %s ===\n", version, time.Now().Format(time.RFC3339))
 	_, _ = f.WriteString(header)
 
@@ -396,8 +430,8 @@ func Start(logName, logPath, logLevel string) (*Log, error) {
 		status:      true,
 		stats:       false,
 		statistic:   &statistics{},
-		message:     make(chan string, channelBuf),
-		buffer:      make([]byte, 0, bufferSize),
+		message:     make(chan string, cfg.bufferSize),
+		buffer:      make([]byte, 0, cfg.batchSize),
 	}
 
 	log.file.Store(f)
@@ -416,20 +450,55 @@ func (_log *Log) startWriting() {
 	ticker := time.NewTicker(flushInterval)
 	defer ticker.Stop()
 
+	// Buffer de lote reutilizable para reducir la contención del mutex
+	batch := make([]string, 0, 1024)
+	const drainLimit = 1000
+
 	for {
 		select {
-		case msg, ok := <-_log.message:
+		case first, ok := <-_log.message:
 			if !ok {
+				// Volcar cualquier resto del batch y hacer flush final
+				if len(batch) > 0 {
+					_log.mtx.Lock()
+					for i := range batch {
+						_log.buffer = append(_log.buffer, batch[i]...)
+					}
+					_log.mtx.Unlock()
+					batch = batch[:0]
+				}
 				_log.flush()
 				return
 			}
+
+			// Arranca el lote con el primer mensaje
+			batch = append(batch, first)
+
+			// Drenaje no bloqueante hasta agotar o alcanzar límite por lote
+			for i := 1; i < drainLimit; i++ {
+				select {
+				case msg := <-_log.message:
+					batch = append(batch, msg)
+				default:
+					i = drainLimit // salir del bucle
+				}
+			}
+
+			// Un solo lock para volcar todo el lote al buffer principal
 			_log.mtx.Lock()
-			_log.buffer = append(_log.buffer, msg...)
+			for i := range batch {
+				_log.buffer = append(_log.buffer, batch[i]...)
+			}
+			shouldFlush := len(_log.buffer) >= cap(_log.buffer)/2
 			_log.mtx.Unlock()
 
-			if len(_log.buffer) >= bufferSize/2 {
+			// Reutilizar batch sin realloc
+			batch = batch[:0]
+
+			if shouldFlush {
 				_log.flush()
 			}
+
 		case <-ticker.C:
 			_log.flush()
 		}
@@ -459,19 +528,19 @@ func (_log *Log) Sync() {
 func (_log *Log) flush() {
 	_log.mtx.Lock()
 	bufferCopy := append([]byte(nil), _log.buffer...)
-	needDaily := _log.daily
-	if needDaily {
+	// Evaluar rotación diaria correctamente: solo cuando está habilitada y cambió el día
+	needDaily := false
+	if _log.daily {
 		today := time.Now().Format(lastDayFormat)
-		if today != _log.lastDay {
-			needDaily = true
-		}
+		needDaily = (today != _log.lastDay)
 	}
-	needSize := _log.maxSize > 0
+	// Evaluar rotación por tamaño: solo si excede el umbral
+	needSize := false
 	var currentFile *os.File
 	if f := _log.getFile(); f != nil {
 		info, _ := f.Stat()
-		if info != nil && needSize && info.Size()+int64(len(_log.buffer)) >= _log.maxSize {
-			needSize = true
+		if info != nil && _log.maxSize > 0 {
+			needSize = info.Size()+int64(len(_log.buffer)) >= _log.maxSize
 		}
 		currentFile = f
 	}

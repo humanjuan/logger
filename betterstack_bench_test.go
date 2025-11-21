@@ -7,7 +7,7 @@ import (
 )
 
 func BenchmarkHumanJuan(b *testing.B) {
-	lg, _ := Start("bench.log", b.TempDir(), "INFO")
+	lg, _ := Start("bench.log", b.TempDir(), "INFO", WithBufferSize(5_000_000), WithBatchSize(512*1024))
 	defer lg.Close()
 
 	b.ResetTimer()
@@ -17,7 +17,7 @@ func BenchmarkHumanJuan(b *testing.B) {
 }
 
 func BenchmarkHumanJuan_Parallel(b *testing.B) {
-	lg, _ := Start("bench.log", b.TempDir(), "INFO")
+	lg, _ := Start("bench.log", b.TempDir(), "INFO", WithBufferSize(5_000_000), WithBatchSize(512*1024))
 	defer lg.Close()
 
 	b.ResetTimer()
@@ -29,7 +29,7 @@ func BenchmarkHumanJuan_Parallel(b *testing.B) {
 }
 
 func BenchmarkHumanJuan_1KB(b *testing.B) {
-	lg, _ := Start("bench.log", b.TempDir(), "INFO")
+	lg, _ := Start("bench.log", b.TempDir(), "INFO", WithBufferSize(5_000_000), WithBatchSize(512*1024))
 	defer lg.Close()
 
 	msg := strings.Repeat("X", 1024)
@@ -41,7 +41,7 @@ func BenchmarkHumanJuan_1KB(b *testing.B) {
 }
 
 func BenchmarkHumanJuan_Parallel_1KB(b *testing.B) {
-	lg, _ := Start("bench.log", b.TempDir(), "INFO")
+	lg, _ := Start("bench.log", b.TempDir(), "INFO", WithBufferSize(5_000_000), WithBatchSize(512*1024))
 	defer lg.Close()
 
 	msg := strings.Repeat("X", 1024)
@@ -55,15 +55,15 @@ func BenchmarkHumanJuan_Parallel_1KB(b *testing.B) {
 }
 
 /*
-# Benchmark básico (el que más se compara)
-go test -bench=BenchmarkHumanJuan -benchmem
+# Benchmark básico
+go test -bench=BenchmarkHumanJuan -benchmem -benchtime=5s
 
-# Benchmark paralelo (el más importante para producción)
-go test -bench=BenchmarkHumanJuan_Parallel -benchmem
+# Benchmark paralelo (importante para producción)
+go test -bench=BenchmarkHumanJuan_Parallel -benchmem -benchtime=5s
 
-# Con mensajes de 1KB (el que mata a todos)
-go test -bench=BenchmarkHumanJuan_1KB -benchmem
+# Con mensajes de 1KB
+go test -bench=BenchmarkHumanJuan_1KB -benchmem -benchtime=5s
 
-# Paralelo + 1KB (el rey de la concurrencia real)
-go test -bench=BenchmarkHumanJuan_Parallel_1KB -benchmem
+# Paralelo + 1KB (concurrencia real)
+go test -bench=BenchmarkHumanJuan_Parallel_1KB -benchmem -benchtime=5s
 */
