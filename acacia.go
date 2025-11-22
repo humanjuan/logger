@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  HumanJuan Acacia - High-performance concurrent logger with real file rotation                                     //
 //                                                                                                                    //
-//  Version: 2.1.0                                                                                                    //
+//  Version: 2.1.1                                                                                                    //
 //                                                                                                                    //
 //	MIT License                                                                                                       //
 //	                                                                                                                  //
@@ -47,7 +47,7 @@ import (
 )
 
 const (
-	version           = "2.1.0"
+	version           = "2.1.1"
 	DefaultBufferSize = 500_000
 	MinBufferSize     = 1_000
 	DefaultBatchSize  = 64 * 1024 // 64 kb
@@ -179,9 +179,6 @@ func (_log *Log) Status() bool {
 	return _log.status
 }
 
-// Dropped está deprecado. Desde v2.2 el logger aplica backpressure y no
-// descarta mensajes. Este método se conserva por compatibilidad y siempre
-// retorna 0.
 func (_log *Log) Dropped() uint64 { return 0 }
 
 func (_log *Log) logf(level string, data interface{}, args ...interface{}) {
@@ -192,7 +189,6 @@ func (_log *Log) logf(level string, data interface{}, args ...interface{}) {
 	msg := _log.formatMessage(data, args...)
 	raw := _log.setFormat(msg, level)
 
-	// Envío bloqueante: aplica backpressure y garantiza cero pérdidas.
 	_log.message <- raw
 	atomic.AddInt64(&_log.statistic.statsCallWrite, 1)
 }
@@ -272,9 +268,7 @@ func (_log *Log) DailyRotation(enabled bool) {
 		_log.lastDay = time.Now().Format(lastDayFormat)
 	}
 	_log.mtx.Unlock()
-	// Si se habilita la rotación diaria, rotamos inmediatamente el archivo actual
-	// a un nombre con la fecha de hoy (p. ej., app.log → app-YYYY-MM-DD.log),
-	// para alinear con la expectativa de los tests y simplificar el ciclo diario.
+
 	if enabled {
 		_ = _log.rotateByDate(_log.lastDay)
 	}
@@ -480,19 +474,16 @@ func (_log *Log) startWriting() {
 				case msg := <-_log.message:
 					batch = append(batch, msg)
 				default:
-					i = drainLimit // salir del bucle
+					i = drainLimit
 				}
 			}
 
-			// Un solo lock para volcar todo el lote al buffer principal
 			_log.mtx.Lock()
 			for i := range batch {
 				_log.buffer = append(_log.buffer, batch[i]...)
 			}
 			shouldFlush := len(_log.buffer) >= cap(_log.buffer)/2
 			_log.mtx.Unlock()
-
-			// Reutilizar batch sin realloc
 			batch = batch[:0]
 
 			if shouldFlush {
@@ -528,13 +519,11 @@ func (_log *Log) Sync() {
 func (_log *Log) flush() {
 	_log.mtx.Lock()
 	bufferCopy := append([]byte(nil), _log.buffer...)
-	// Evaluar rotación diaria correctamente: solo cuando está habilitada y cambió el día
 	needDaily := false
 	if _log.daily {
 		today := time.Now().Format(lastDayFormat)
-		needDaily = (today != _log.lastDay)
+		needDaily = today != _log.lastDay
 	}
-	// Evaluar rotación por tamaño: solo si excede el umbral
 	needSize := false
 	var currentFile *os.File
 	if f := _log.getFile(); f != nil {
