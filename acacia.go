@@ -6,7 +6,7 @@
 //                                                                                                                    //
 //  HumanJuan Acacia - High-performance concurrent logger with real file rotation                                     //
 //                                                                                                                    //
-//  Version: 2.1.1                                                                                                    //
+//  Version: 2.2.0                                                                                                    //
 //                                                                                                                    //
 //	MIT License                                                                                                       //
 //	                                                                                                                  //
@@ -38,7 +38,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,7 +46,7 @@ import (
 )
 
 const (
-	version           = "2.1.1"
+	version           = "2.2.0"
 	DefaultBufferSize = 500_000
 	MinBufferSize     = 1_000
 	DefaultBatchSize  = 64 * 1024 // 64 kb
@@ -62,6 +61,7 @@ var (
 type config struct {
 	bufferSize int
 	batchSize  int
+	flushEvery time.Duration
 }
 
 type Option func(*config)
@@ -78,6 +78,16 @@ func WithBatchSize(number int) Option {
 	return func(conf *config) {
 		if number > 1024 {
 			conf.batchSize = number
+		}
+	}
+}
+
+// WithFlushInterval permite configurar cada cuánto el writer dispara un flush periódico.
+// El valor por defecto es 100ms.
+func WithFlushInterval(d time.Duration) Option {
+	return func(conf *config) {
+		if d > 0 {
+			conf.flushEvery = d
 		}
 	}
 }
@@ -149,10 +159,23 @@ type Log struct {
 	file              atomic.Value
 	stats             bool
 	statistic         *statistics
-	message           chan string
+	message           chan []byte
 	wg                sync.WaitGroup
 	mtx               sync.Mutex
 	buffer            []byte
+	writeBuf          []byte
+	flushEvery        time.Duration
+}
+
+// Pool de buffers por línea para reducir asignaciones en el hot path
+var linePool = sync.Pool{New: func() interface{} {
+	return make([]byte, 0, 512)
+}}
+
+func getBuf() []byte { return linePool.Get().([]byte) }
+
+func putBuf(b []byte) {
+	linePool.Put(b[:0])
 }
 
 // F o r   S t a t i s t i c s
@@ -187,8 +210,7 @@ func (_log *Log) logf(level string, data interface{}, args ...interface{}) {
 	}
 
 	msg := _log.formatMessage(data, args...)
-	raw := _log.setFormat(msg, level)
-
+	raw := _log.setFormatBytes(msg, level)
 	_log.message <- raw
 	atomic.AddInt64(&_log.statistic.statsCallWrite, 1)
 }
@@ -230,21 +252,35 @@ func (_log *Log) Debug(data interface{}, args ...interface{}) {
 }
 
 func (_log *Log) formatMessage(data interface{}, args ...interface{}) string {
-	if len(args) > 0 {
-		return fmt.Sprintf(data.(string), args...)
+	if len(args) == 0 {
+		switch v := data.(type) {
+		case string:
+			return v
+		case []byte:
+			// Convertimos directamente evitando fmt.Sprint para reducir costo
+			return string(v)
+		default:
+			// fmt.Sprint es más barato que Sprintf("%v", ...) para este caso
+			return fmt.Sprint(v)
+		}
 	}
-	return fmt.Sprintf("%v", data)
+	return fmt.Sprintf(data.(string), args...)
 }
 
 func (_log *Log) Write(p []byte) (int, error) {
 	if !_log.shouldLog("INFO") {
 		return len(p), nil
 	}
-	msg := string(p)
-	if msg != "" && msg[len(msg)-1] != '\n' {
-		msg += "\n"
+	if len(p) == 0 || p[len(p)-1] != '\n' {
+		buf := make([]byte, 0, len(p)+1)
+		buf = append(buf, p...)
+		buf = append(buf, '\n')
+		raw := _log.setFormatBytes(string(buf), "INFO")
+		_log.message <- raw
+	} else {
+		raw := _log.setFormatBytes(string(p), "INFO")
+		_log.message <- raw
 	}
-	_log.logf("INFO", msg)
 	return len(p), nil
 }
 
@@ -405,6 +441,7 @@ func Start(logName, logPath, logLevel string, opts ...Option) (*Log, error) {
 	cfg := &config{
 		bufferSize: DefaultBufferSize,
 		batchSize:  DefaultBatchSize,
+		flushEvery: flushInterval,
 	}
 	for _, opt := range opts {
 		opt(cfg)
@@ -424,8 +461,10 @@ func Start(logName, logPath, logLevel string, opts ...Option) (*Log, error) {
 		status:      true,
 		stats:       false,
 		statistic:   &statistics{},
-		message:     make(chan string, cfg.bufferSize),
+		message:     make(chan []byte, cfg.bufferSize),
 		buffer:      make([]byte, 0, cfg.batchSize),
+		writeBuf:    make([]byte, 0, cfg.batchSize),
+		flushEvery:  cfg.flushEvery,
 	}
 
 	log.file.Store(f)
@@ -441,22 +480,24 @@ func Start(logName, logPath, logLevel string, opts ...Option) (*Log, error) {
 
 func (_log *Log) startWriting() {
 	defer _log.wg.Done()
-	ticker := time.NewTicker(flushInterval)
+	interval := _log.flushEvery
+	if interval <= 0 {
+		interval = flushInterval
+	}
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// Buffer de lote reutilizable para reducir la contención del mutex
-	batch := make([]string, 0, 1024)
-	const drainLimit = 1000
+	batch := make([][]byte, 0, 1024)
 
 	for {
 		select {
 		case first, ok := <-_log.message:
 			if !ok {
-				// Volcar cualquier resto del batch y hacer flush final
 				if len(batch) > 0 {
 					_log.mtx.Lock()
 					for i := range batch {
 						_log.buffer = append(_log.buffer, batch[i]...)
+						putBuf(batch[i])
 					}
 					_log.mtx.Unlock()
 					batch = batch[:0]
@@ -465,10 +506,15 @@ func (_log *Log) startWriting() {
 				return
 			}
 
-			// Arranca el lote con el primer mensaje
 			batch = append(batch, first)
+			qlen := len(_log.message)
+			drainLimit := 256
 
-			// Drenaje no bloqueante hasta agotar o alcanzar límite por lote
+			if qlen > 10_000 {
+				drainLimit = 4096
+			} else if qlen > 1000 {
+				drainLimit = 1024
+			}
 			for i := 1; i < drainLimit; i++ {
 				select {
 				case msg := <-_log.message:
@@ -481,6 +527,7 @@ func (_log *Log) startWriting() {
 			_log.mtx.Lock()
 			for i := range batch {
 				_log.buffer = append(_log.buffer, batch[i]...)
+				putBuf(batch[i])
 			}
 			shouldFlush := len(_log.buffer) >= cap(_log.buffer)/2
 			_log.mtx.Unlock()
@@ -498,7 +545,7 @@ func (_log *Log) startWriting() {
 
 func (_log *Log) Sync() {
 	select {
-	case _log.message <- "":
+	case _log.message <- []byte{}:
 	default:
 	}
 	deadline := time.Now().Add(5 * time.Second)
@@ -507,6 +554,7 @@ func (_log *Log) Sync() {
 		empty := len(_log.message) == 0 && len(_log.buffer) == 0
 		_log.mtx.Unlock()
 		if empty {
+			_log.flush()
 			if f := _log.getFile(); f != nil {
 				_ = f.Sync()
 			}
@@ -518,7 +566,7 @@ func (_log *Log) Sync() {
 
 func (_log *Log) flush() {
 	_log.mtx.Lock()
-	bufferCopy := append([]byte(nil), _log.buffer...)
+	_log.buffer, _log.writeBuf = _log.writeBuf[:0], _log.buffer
 	needDaily := false
 	if _log.daily {
 		today := time.Now().Format(lastDayFormat)
@@ -529,11 +577,10 @@ func (_log *Log) flush() {
 	if f := _log.getFile(); f != nil {
 		info, _ := f.Stat()
 		if info != nil && _log.maxSize > 0 {
-			needSize = info.Size()+int64(len(_log.buffer)) >= _log.maxSize
+			needSize = info.Size()+int64(len(_log.writeBuf)) >= _log.maxSize
 		}
 		currentFile = f
 	}
-	_log.buffer = _log.buffer[:0]
 	_log.mtx.Unlock()
 
 	if needDaily {
@@ -546,17 +593,33 @@ func (_log *Log) flush() {
 	if needSize {
 		_ = _log.logRotate()
 	}
-	if len(bufferCopy) > 0 && currentFile != nil {
-		currentFile.Write(bufferCopy)
+	if len(_log.writeBuf) > 0 && currentFile != nil {
+		_, _ = currentFile.Write(_log.writeBuf)
 	}
+	_log.writeBuf = _log.writeBuf[:0]
 }
 
-func (_log *Log) setFormat(msg, level string) string {
-	ts := time.Now().Format(timestampFormat)
-	if !_log.structured {
-		return fmt.Sprintf("%s [%s] %s\n", ts, level, msg)
+// setFormatBytes arma la línea final en bytes
+func (_log *Log) setFormatBytes(msg string, level string) []byte {
+	if _log.structured {
+		buf := getBuf()
+		jsonLine := fmt.Sprintf(`{"ts":"%s","level":"%s","msg":%q}`+"\n", time.Now().Format(timestampFormat), level, msg)
+		buf = append(buf, jsonLine...)
+		return buf
 	}
-	return fmt.Sprintf(`{"ts":"%s","level":"%s","msg":%q}`+"\n", ts, level, msg)
+
+	buf := getBuf()
+	now := time.Now()
+	buf = now.AppendFormat(buf, timestampFormat)
+	buf = append(buf, ' ')
+	buf = append(buf, '[')
+	buf = append(buf, level...)
+	buf = append(buf, ']', ' ')
+	buf = append(buf, msg...)
+	if len(buf) == 0 || buf[len(buf)-1] != '\n' {
+		buf = append(buf, '\n')
+	}
+	return buf
 }
 
 func (_log *Log) TimestampFormat(format string) {
@@ -564,13 +627,12 @@ func (_log *Log) TimestampFormat(format string) {
 }
 
 func verifyLevel(lvl string) bool {
-	v := reflect.ValueOf(Level)
-	for i := 0; i < v.NumField(); i++ {
-		if v.Field(i).String() == lvl {
-			return true
-		}
+	switch lvl {
+	case Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR, Level.CRITICAL:
+		return true
+	default:
+		return false
 	}
-	return false
 }
 
 func (_log *Log) getFile() *os.File {

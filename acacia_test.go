@@ -202,7 +202,7 @@ func TestPanicRecoveryNoLogLoss(t *testing.T) {
 }
 
 /*
-go test -v -race ./logger
+go test -v -race .
 go test -run TestConcurrentWrites -race   // harder
 go test -bench=. -run=Benchmark
 */

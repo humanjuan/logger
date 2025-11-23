@@ -104,7 +104,7 @@ func BenchmarkDroppedUnderPressure(b *testing.B) {
 			defer wg.Done()
 			for i := 0; i < perGoroutine; i++ {
 				select {
-				case lg.message <- "pressure test":
+				case lg.message <- []byte("pressure test"):
 					sent.Add(1)
 				default:
 					dropped.Add(1)
