@@ -1,0 +1,141 @@
+MIX DATA — UTF-8 🌲 Test Start
+------------------------------------------------------------
+
+ASCII:
+! " # $ % & ' ( ) * + , - . /
+: ; < = > ? @ [ \ ] ^ _ { | } ~
+
+Numbers:
+0123456789
+
+Latin:
+abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+Accents:
+á é í ó ú ü ñ Ñ
+Á É Í Ó Ú Ü
+
+Quotes:
+"double quotes"
+'single quotes'
+`backticks`
+
+Escapes:
+\\
+\t
+\n
+\"
+
+Unicode Arrows:
+→
+↔
+↕
+↗
+↘
+⇧
+⇩
+
+Math Symbols:
+∑
+∞
+√
+π
+∂
+µ
+Ω
+∆
+
+Currency:
+$
+€
+¥
+£
+₿
+
+Emojis:
+😀
+😅
+🔥
+🚀
+💛
+💡
+📱
+⚙️
+🧪
+🧩
+🦊
+💻
+🌙
+
+Multi-byte / combining:
+ā
+ä
+õ
+ė
+ṉ
+ư
+ḷ
+ś
+ṕ
+ż
+ł
+ø
+æ
+œ
+ß
+
+RTL text:
+مرحبا بالعالم
+שלום עולם
+
+CJK:
+你好，世界
+こんにちは世界
+안녕하세요 세계
+
+Long multiline block:
+
+Lorem ipsum dolor sit amet,
+consectetur adipiscing elit.
+Vivamus sodales odio non elit tristique,
+nec posuere lorem cursus.
+Integer facilisis,
+augue ut faucibus ultrices,
+metus massa tempor nisl,
+vitae pretium ex mauris vel ante.
+
+More newline stress:
+
+Line A
+
+Line B
+
+
+Line C
+
+
+
+Line D (two above, three below)
+
+
+JSON-like test:
+{
+    "user": "juan",
+    "active": true,
+    "score": 99.5,
+    "tags": [
+        "log",
+        "test",
+        "acacia"
+    ]
+}
+
+Binary-look:
+00011010
+11100010
+10101010
+01100101
+
+END OF TEST — 🌲 MIX DATA
+------------------------------------------------------------
