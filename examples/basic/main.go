@@ -1,20 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"sync"
-	"time"
-
 	"github.com/humanjuan/acacia/v2"
 )
 
 func main() {
-	// basicTest()
+	basicTest()
 	//stressTest()
 	//stressByteTest()
 	//stressJSONTest()
-	mixContentTest()
+	// mixContentTest()
 }
 
 func basicTest() {
@@ -24,19 +19,63 @@ func basicTest() {
 	}
 	defer lg.Close()
 
-	// Optional: choose your preferred timestamp format
 	lg.TimestampFormat(acacia.TS.Special)
 
-	lg.Critical("This is a Critical message")
-	lg.Info("This is an Informational message %d", 12345)
-	lg.Warn("This is a Warning message")
-	lg.Error("This is an Error message")
-	lg.Debug("This is a Debug message")
+	data1 := 2022
+	data2 := []string{"dog", "cat", "fish", "bird"}
+
+	lg.Critical("This is a Critical message %d", 2023)
+	lg.Critical("Simple log message without variables")
+	lg.Critical("Data: %v, Value: %v", data1, data2)
+	lg.Critical(1)
+	lg.Critical(1.0)
+	lg.Critical(true)
+	// lg.Critical("% X", []byte{1, 2, 3})
+	lg.Critical(map[string]interface{}{})
+
+	lg.Info("This is a Critical message %d", 2023)
+	lg.Info("Simple log message without variables")
+	lg.Info("Data: %v, Value: %v", data1, data2)
+	lg.Info(1)
+	lg.Info(1.0)
+	lg.Info(true)
+	// lg.Info("% X", []byte{1, 2, 3})
+	lg.Info(map[string]interface{}{})
+
+	lg.Warn("This is a Critical message %d", 2023)
+	lg.Warn("Simple log message without variables")
+	lg.Warn("Data: %v, Value: %v", data1, data2)
+	lg.Warn(1)
+	lg.Warn(1.0)
+	lg.Warn(true)
+	// lg.Warn("% X", []byte{1, 2, 3})
+	lg.Warn(map[string]interface{}{})
+
+	lg.Error("This is a Critical message %d", 2023)
+	lg.Error("Simple log message without variables")
+	lg.Error("Data: %v, Value: %v", data1, data2)
+	lg.Error(1)
+	lg.Error(1.0)
+	lg.Error(true)
+	// lg.Error("% X", []byte{1, 2, 3})
+	lg.Error(map[string]interface{}{})
+
+	lg.Debug("This is a Critical message %d", 2023)
+	lg.Debug("Simple log message without variables")
+	lg.Debug("Data: %v, Value: %v", data1, data2)
+	lg.Debug(1)
+	lg.Debug(1.0)
+	lg.Debug(true)
+	// lg.Debug("% X", []byte{1, 2, 3})
+	lg.Debug(map[string]interface{}{})
 
 	// Optional rotation configuration (defaults are 40MB size, 4 backups)
 	// lg.Rotation(80, 5)
+
+	// lg.Close()
 }
 
+/*
 func stressTest() {
 	lg, err := acacia.Start("acacia.log", "./examples", acacia.Level.INFO)
 	if err != nil {
@@ -193,3 +232,4 @@ func mixContentTest() {
 	//lg.Info(msg)
 
 }
+*/
