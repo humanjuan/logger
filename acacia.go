@@ -713,7 +713,11 @@ func (_log *Log) startWriting() {
 						}
 						lvl := levelBytesFor(ev.level)
 						_log.mtx.Lock()
-						_log.buffer = appendLine(_log.buffer, ts, lvl, ev.msgStr)
+						if ev.kind == 0 {
+							_log.buffer = appendLine(_log.buffer, ts, lvl, ev.msgStr)
+						} else { // kind == 1 (bytes)
+							_log.buffer = appendLineBytes(_log.buffer, ts, lvl, ev.msgBytes)
+						}
 						_log.mtx.Unlock()
 					default:
 						goto events_drained_on_close
